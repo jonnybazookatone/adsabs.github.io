@@ -27,32 +27,36 @@ We decided to create an application that pits two authors against one another, b
 
 One possible approach is to just compare total citations of one author to another, but obviously this can lead to biases given that someone who works longer should have more citations, people who have more papers from collaborations will have more citations, etc. To get around this annoyance, we chose to use the RIQ, a metric that is meant to *fairly* compare two authors. You can read more about this metric here. Of course, there are problems with this metric too, but this application is meant to demonstrate the API, not give a tool to use for serious work.
 
+First, obtain your API token and set it inside your *ADS_DEV_TOKEN* environment variable, either in your current session, or your `~/.bashrc`.
+
+```bash
+export ADS_DEV_TOKEN="adsf1234ADSF1234"
+```
+
 To obtain the RIQ for authors, first we need to get the list of bibcodes of a specific author:
 
 ```python
 >>> import ads
->>> ads.TOKEN = 'ADS_API_TOKEN_THAT_I_WILL_NOT_COMMIT_TO_GITHUB'
->>> solr_query = ads.SolrQuery(q='Elliott, J.', fl=['id', 'bibcode'])
->>> bibcodes = [paper.bibcode for paper in solr_query]
+>>> query = ads.SearchQuery(q='Elliott, J.', fl=['id', 'bibcode'])
+>>> bibcodes = [paper.bibcode for paper in query]
 ```
 
-This gives us all the bibcodes for author "J. Elliott", and requests for the field items "id" and "bibcode" to be returned, which ensures that no lengthy requests are carried out by our search engine. For example, if you request `fl=['citations']`, this will carry out a second order operation, which will make the response slower.
-
+This gives us all the bibcodes for author "J. Elliott", and requests for the field items "id" and "bibcode" to be returned, which ensures that no lengthy requests are carried out by our search engine. For example, if you request `fl=['citation']`, this serves more data and as a result increases the response time.
 
 Once you have the relevant bibcodes, we need to ask the metrics end point for the metrics for the list of papers:
 
 ```python
 >>> metrics_query = ads.MetricsQuery(bibcodes=bibcodes)
 >>> metrics_response = metrics_query.execute()
->>> riq = metrics_response['indicators']['riq]
+>>> riq = metrics_response['indicators']['riq']
 >>> print riq
 40
 ```
 
-The above is also so simple, you could do it via curl requests as outlined in our help pages, or write your own client in the language of your choice.
+The above is also so simple that you could do it via curl requests as outlined in our [API help pages](https://github.com/adsabs/adsabs-dev-api), or write your own client in the language of your choice.
 
 ### Step 3: Serve your logic in a web app
-s
+
 Our application will receive two authors names, and return the RIQs of each author, which will then display the winner (and loser) on the front-end application. To do this, we built a back-end application using Python-Flask, and a front-end application written in JavaScript.
 
 The Flask application will have an end point that returns the RIQs of each user, and an end point that serves the static content of the front end application written in JavaScript, which can be seen in a few lines of code.
